@@ -4,6 +4,11 @@ PyInstaller specification for PDF2text Desktop Application.
 Bundles app.pyw into a standalone Windows executable without a console window.
 """
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
 
 # ---------------------------------------------------------------------------
@@ -15,8 +20,20 @@ datas = [('dictionary.json', '.')]
 binaries = []
 hiddenimports = ['torch', 'torchvision', 'torchvision.ops', 'torchvision.models', 'easyocr', 'rapidfuzz']
 
-for pkg in ('torch', 'torchvision', 'easyocr'):
-    p_datas, p_binaries, p_hidden = collect_all(pkg)
+def torch_submodule_filter(name):
+    # Exclude unused modules that trigger missing dependency warnings or deprecations
+    for excluded in ('tensorboard', 'distributed', 'testing', 'caffe2'):
+        if excluded in name:
+            return False
+    return True
+
+p_datas, p_binaries, p_hidden = collect_all('torch', filter_submodules=torch_submodule_filter, on_error='ignore')
+datas += p_datas
+binaries += p_binaries
+hiddenimports += p_hidden
+
+for pkg in ('torchvision', 'easyocr'):
+    p_datas, p_binaries, p_hidden = collect_all(pkg, on_error='ignore')
     datas     += p_datas
     binaries  += p_binaries
     hiddenimports += p_hidden
@@ -65,10 +82,15 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
-    hookspath=[],
+    hookspath=['hooks'],
     hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'tensorboard',
+        'torch.utils.tensorboard',
+        'torch.distributed',
+        'torch.testing',
+        'caffe2',
+    ],
     noarchive=False,
     optimize=0,
 )
