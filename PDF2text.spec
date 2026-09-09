@@ -2,55 +2,25 @@
 """
 PyInstaller specification for PDF2text Desktop Application.
 Bundles app.pyw into a standalone Windows executable without a console window.
+Zero-bloat build utilizing RapidOCR (ONNX Runtime) and PyMuPDF.
 """
 
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore")
 
 from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
 
 # ---------------------------------------------------------------------------
-# Bootstrap: collect_all ensures every DLL, data file, and sub-module for the
-# heaviest dependencies is captured — prevents "missing library" crashes in the
-# frozen EXE.
+# Data Assets & Models
 # ---------------------------------------------------------------------------
-datas = [('dictionary.json', '.')]
+datas = [
+    ('dictionary.json', '.'),
+    ('models', 'models'),
+]
 binaries = []
-hiddenimports = ['torch', 'torchvision', 'torchvision.ops', 'torchvision.models', 'easyocr', 'rapidfuzz']
-
-def torch_submodule_filter(name):
-    # Exclude unused modules that trigger missing dependency warnings or deprecations
-    for excluded in ('tensorboard', 'distributed', 'testing', 'caffe2'):
-        if excluded in name:
-            return False
-    return True
-
-p_datas, p_binaries, p_hidden = collect_all('torch', filter_submodules=torch_submodule_filter, on_error='ignore')
-datas += p_datas
-binaries += p_binaries
-hiddenimports += p_hidden
-
-for pkg in ('torchvision', 'easyocr'):
-    p_datas, p_binaries, p_hidden = collect_all(pkg, on_error='ignore')
-    datas     += p_datas
-    binaries  += p_binaries
-    hiddenimports += p_hidden
-
-# ---------------------------------------------------------------------------
-# Additional data assets
-# ---------------------------------------------------------------------------
-datas += collect_data_files('customtkinter')
-datas += collect_data_files('pymupdf')
-datas += collect_data_files('surya')
-datas += [('models', 'models')]
-
-# ---------------------------------------------------------------------------
-# Additional hidden imports
-# ---------------------------------------------------------------------------
-hiddenimports += [
-    'customtkinter',
+hiddenimports = [
+    'rapidocr_onnxruntime',
+    'onnxruntime',
     'pymupdf',
     'fitz',
     'openpyxl',
@@ -59,22 +29,23 @@ hiddenimports += [
     'numpy',
     'PIL',
     'PIL.Image',
-    'surya',
-    'surya.layout',
-    'surya.table_rec',
-    'transformers',
-    'safetensors',
-    'pypdfium2',
-    'dotenv',
-    'platformdirs',
+    'rapidfuzz',
+    'customtkinter',
     'multiprocessing',
     'concurrent.futures',
 ]
-hiddenimports += collect_submodules('pymupdf')
+
+# Collect essential packages
+for pkg in ('rapidocr_onnxruntime', 'onnxruntime', 'customtkinter', 'pymupdf'):
+    p_datas, p_binaries, p_hidden = collect_all(pkg, on_error='ignore')
+    datas += p_datas
+    binaries += p_binaries
+    hiddenimports += p_hidden
+
 hiddenimports += collect_submodules('openpyxl')
 hiddenimports += collect_submodules('docx')
 hiddenimports += collect_submodules('cv2')
-hiddenimports += collect_submodules('surya')
+hiddenimports += collect_submodules('rapidfuzz')
 
 a = Analysis(
     ['app.pyw'],
@@ -82,14 +53,23 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
-    hookspath=['hooks'],
+    hookspath=[],
     hooksconfig={},
+    runtime_hooks=[],
     excludes=[
+        'torch',
+        'torchvision',
+        'easyocr',
+        'surya',
         'tensorboard',
         'torch.utils.tensorboard',
         'torch.distributed',
         'torch.testing',
         'caffe2',
+        'scipy',
+        'matplotlib',
+        'pytest',
+        'IPython',
     ],
     noarchive=False,
     optimize=0,
@@ -106,7 +86,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,  # Suppresses black console command prompt
+    console=False,  # Suppresses command prompt window
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
