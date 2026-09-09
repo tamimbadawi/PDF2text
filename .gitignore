@@ -1,0 +1,44 @@
+﻿# ── PyInstaller build outputs ──────────────────────────────────────────────
+dist/
+build/
+*.spec.bak
+
+# ── Installer output ────────────────────────────────────────────────────────
+dist_installer/
+
+# ── Python cache & byte-compiled files ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.class
+*.pyo
+
+# ── EasyOCR / Torch downloaded model weights ──────────────────────────────
+models/*.pth
+models/*.pt
+*.pth
+*.pt
+
+# ── Test / scratch outputs ─────────────────────────────────────────────────
+scratch/
+*.xlsx
+*.docx
+*.txt.out
+page_1_rendered.png
+test_page0_pricing.pdf
+test_page_1_structured.xlsx
+
+# ── Virtual environments ───────────────────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── IDE & OS ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ── Secrets ────────────────────────────────────────────────────────────────
+.env
+*.env
